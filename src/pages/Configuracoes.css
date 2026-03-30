@@ -1,0 +1,110 @@
+.config-container {
+  display: flex;
+  height: calc(100vh - 180px);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  margin-top: 16px;
+}
+
+.config-sidebar {
+  width: 250px;
+  background-color: rgba(0,0,0,0.2);
+  border-right: var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+}
+
+.config-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.config-tab:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-main);
+}
+
+.config-tab.active {
+  background-color: var(--color-primary-glow);
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+  font-weight: 500;
+}
+
+.config-content {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.config-content h2 {
+  font-size: 1.4rem;
+  margin-bottom: 8px;
+}
+
+.mb-4 { margin-bottom: 24px; }
+.mt-3 { margin-top: 16px; }
+.mt-4 { margin-top: 24px; }
+
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-3 { gap: 12px; }
+
+.integration-card {
+  background-color: var(--color-bg-surface);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  transition: box-shadow 0.2s;
+}
+
+.integration-card:hover {
+  box-shadow: var(--shadow-surface);
+}
+
+.integration-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: var(--border-subtle);
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.whatsapp { background-color: #25D366; }
+.openclaw { background-color: var(--color-primary); }
+
+textarea.input-field {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.placeholder-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}

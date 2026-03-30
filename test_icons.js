@@ -1,0 +1,16 @@
+import * as Lucide from 'lucide-react';
+console.log('Briefcase:', !!Lucide.Briefcase);
+console.log('Layout:', !!Lucide.Layout);
+console.log('LayoutDashboard:', !!Lucide.LayoutDashboard);
+console.log('Calendar:', !!Lucide.Calendar);
+console.log('CalendarDays:', !!Lucide.CalendarDays);
+console.log('Grid:', !!Lucide.Grid);
+console.log('KanbanSquare:', !!Lucide.KanbanSquare);
+console.log('Columns:', !!Lucide.Columns);
+console.log('Trello:', !!Lucide.Trello);
+console.log('Users:', !!Lucide.Users);
+console.log('MessageCircle:', !!Lucide.MessageCircle);
+console.log('Settings:', !!Lucide.Settings);
+console.log('Available keys start with L:', Object.keys(Lucide).filter(k => k.startsWith('L')).slice(0, 5));
+console.log('Available keys start with C:', Object.keys(Lucide).filter(k => k.startsWith('C')).slice(0, 5));
+console.log('Available keys start with K:', Object.keys(Lucide).filter(k => k.startsWith('K')).slice(0, 5));

@@ -1,0 +1,178 @@
+.agendamentos-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-container {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  position: relative;
+  background-color: var(--color-bg-sidebar);
+}
+
+/* Big Calendar Global Overrides */
+.rbc-calendar {
+  font-family: 'Inter', sans-serif;
+  color: var(--color-text-main);
+  background-color: transparent;
+}
+
+.rbc-month-view {
+  border: var(--border-subtle) !important;
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.rbc-header {
+  padding: 12px 0 !important;
+  color: var(--color-text-muted) !important;
+  font-weight: 600 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: var(--border-subtle) !important;
+  border-left: var(--border-subtle) !important;
+}
+
+.rbc-day-bg {
+  border-left: var(--border-subtle) !important;
+}
+
+.rbc-month-row {
+  border-top: var(--border-subtle) !important;
+}
+
+.rbc-off-range-bg {
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+.rbc-today {
+  background-color: rgba(249, 115, 22, 0.04) !important;
+}
+
+/* ToolBar Customization */
+.rbc-toolbar {
+  margin-bottom: 24px !important;
+  padding: 8px 0;
+}
+
+.rbc-toolbar-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+}
+
+.rbc-btn-group button {
+  color: var(--color-text-muted) !important;
+  background-color: var(--color-bg-sidebar) !important;
+  border: var(--border-subtle) !important;
+  font-size: 0.875rem !important;
+  padding: 8px 16px !important;
+  cursor: pointer;
+  transition: var(--transition-fast) !important;
+}
+
+.rbc-btn-group button:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+}
+
+.rbc-btn-group button.rbc-active {
+  background-color: var(--color-primary-soft) !important;
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  box-shadow: none !important;
+}
+
+/* Events Styling */
+.rbc-event {
+  background-color: var(--color-primary) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 4px 10px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: var(--transition-fast);
+}
+
+.rbc-event:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.rbc-event-content {
+  font-size: 0.75rem !important;
+}
+
+.rbc-show-more {
+  color: var(--color-primary) !important;
+  font-weight: 700 !important;
+  font-size: 0.75rem !important;
+  background: transparent !important;
+}
+
+/* Custom Event Component UI */
+.rbc-custom-event {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rbc-event-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rbc-event-location {
+  font-size: 0.65rem;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+/* Spinner */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Empty State / Connection Overlay */
+.calendar-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+
+.empty-icon {
+  margin-bottom: 24px;
+}
+
+.calendar-empty-state h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.75rem;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.calendar-empty-state p {
+  color: var(--color-text-muted);
+  max-width: 440px;
+  line-height: 1.6;
+}
+
+.error-banner {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.2) !important;
+  color: var(--color-danger) !important;
+}

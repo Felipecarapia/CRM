@@ -1,0 +1,180 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "CRM Agent API",
+    "version": "1.0.0",
+    "description": "API para o Agente OpenClaw gerenciar leads e agendamentos no CRM"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001",
+      "description": "Servidor Local de Desenvolvimento"
+    }
+  ],
+  "paths": {
+    "/api/servicos": {
+      "get": {
+        "summary": "Obter catálogo de serviços da empresa",
+        "description": "Retorna todos os serviços cadastrados (nome e preço) para o agente oferecer ao cliente.",
+        "responses": {
+          "200": {
+            "description": "Lista de serviços",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "nome": { "type": "string" },
+                      "preco": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/identify-client": {
+      "get": {
+        "summary": "Identificar se um cliente já existe pelo telefone",
+        "parameters": [
+          {
+            "name": "phone",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Número do telefone com DDD"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retorna se o cliente foi encontrado e seus detalhes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "found": { "type": "boolean" },
+                    "client": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent/create-client": {
+      "post": {
+        "summary": "Cadastrar um novo lead/cliente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nome": { "type": "string" },
+                  "telefone": { "type": "string" },
+                  "email": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Cliente criado com sucesso" }
+        }
+      }
+    },
+    "/api/agent/schedule-meeting": {
+      "post": {
+        "summary": "Marcar uma reunião/agendamento para um cliente",
+        "description": "Cria um agendamento no banco de dados local do CRM vinculado a um cliente existente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "clientId": { "type": "integer", "description": "ID do cliente no CRM" },
+                  "servico": { "type": "string", "description": "Tipo de serviço (Ex: Consultoria, Demo)" },
+                  "data": { "type": "string", "format": "date", "example": "2026-03-30" },
+                  "horario": { "type": "string", "example": "14:00" },
+                  "notas": { "type": "string", "description": "Notas adicionais sobre a reunião" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Agendamento criado com sucesso" }
+        }
+      }
+    },
+    "/api/dashboard/stats": {
+      "get": {
+        "summary": "Obter estatísticas resumidas do CRM",
+        "description": "Retorna o total de clientes, agendamentos e os últimos leads capturados.",
+        "responses": {
+          "200": {
+            "description": "Estatísticas do CRM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalClients": { "type": "integer" },
+                    "totalAppointments": { "type": "integer" },
+                    "latestLeads": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clientes": {
+      "get": {
+        "summary": "Listar todos os clientes cadastrados",
+        "responses": {
+          "200": { "description": "Lista de clientes" }
+        }
+      }
+    },
+    "/api/clientes/{id}": {
+      "patch": {
+        "summary": "Atualizar status ou dados de um cliente",
+        "description": "Usado principalmente para mover o cliente no funil de vendas (Kanban).",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { 
+                    "type": "string", 
+                    "enum": ["novoLeads", "qualificado", "agendado", "confirmado", "compareceu", "noShow", "perdido", "posVenda"],
+                    "description": "Nova etapa do funil"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Cliente atualizado" }
+        }
+      }
+    }
+  }
+}

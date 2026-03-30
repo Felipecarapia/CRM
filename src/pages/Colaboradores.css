@@ -1,0 +1,126 @@
+.colaboradores-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.perfis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.perfil-card {
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.perfil-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-glow);
+}
+
+.perfil-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), #FF5722);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  position: relative;
+  box-shadow: var(--shadow-surface);
+}
+
+.text-large {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+}
+
+.role-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border: 2px solid var(--color-bg-surface);
+}
+
+.admin-icon {
+  background-color: var(--color-danger);
+}
+
+.colab-icon {
+  background-color: var(--color-success);
+}
+
+.perfil-nome {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.perfil-email {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.role-badge {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 24px;
+}
+
+.perfil-permissions {
+  width: 100%;
+  text-align: left;
+  background-color: rgba(0,0,0,0.2);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 24px;
+}
+
+.perfil-permissions h4 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+
+.perfil-permissions ul {
+  list-style: none;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.perfil-permissions li {
+  display: flex;
+  align-items: center;
+}
+
+.perfil-permissions .denied {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.card-actions {
+  width: 100%;
+  margin-top: auto;
+}
