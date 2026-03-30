@@ -88,6 +88,184 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
+.kanban-card.is-dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+  cursor: grabbing;
+}
+
+.column-hovered {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-color: var(--color-primary);
+}
+
+.drop-indicator {
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary), #3b82f6);
+  border-radius: 2px;
+  animation: drop-pulse 1s infinite;
+}
+
+@keyframes drop-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.client-detail-modal {
+  max-width: 520px;
+  width: 90%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.detail-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), #3b82f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: white;
+  box-shadow: 0 0 20px var(--color-primary-soft);
+}
+
+.detail-body {
+  padding: 0 32px 32px;
+}
+
+.detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.info-item svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.detail-appointments {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 20px;
+}
+
+.appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.appointment-item {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.appt-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.appt-servico {
+  font-weight: 600;
+  color: #fff;
+  font-size: 0.875rem;
+}
+
+.appt-date {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.appt-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.appt-agendado {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.appt-confirmado {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.appt-cancelado {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.appt-concluido {
+  background: rgba(5, 150, 105, 0.1);
+  color: #059669;
+}
+
+.appt-aguardandoconfirmação,
+.appt-aguardando {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.appt-notas {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.kanban-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.card-view-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: all 0.2s;
+}
+
+.card-view-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
 .card-title {
   font-size: 0.95rem;
   font-weight: 700;
