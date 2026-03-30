@@ -17,6 +17,9 @@ server/node_modules
 server/.env
 *.db
 
+# Environment
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
