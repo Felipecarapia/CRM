@@ -1,11 +1,14 @@
 import React from 'react';
-import { User, Bell, ChevronDown } from 'lucide-react';
+import { User, Bell, ChevronDown, Menu, X } from 'lucide-react';
 import './Header.css';
+import './Sidebar.css';
 
-const Header = () => {
+const Header = ({ sidebarOpen, setSidebarOpen }) => {
   return (
     <header className="header">
-      <div className="header-empty-left"></div>
+      <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
 
       <div className="header-actions">
         <button className="btn-icon">
