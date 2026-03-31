@@ -8,8 +8,7 @@ import {
   Mail,
   Clock,
   DollarSign,
-  Tag,
-  Eye
+  Tag
 } from 'lucide-react';
 import useStore from '../store/useStore';
 import './Kanban.css';
@@ -50,6 +49,21 @@ const getBadgeInfo = (edital) => {
 const KanbanCard = React.memo(({ card, columnId, onCardClick, edital }) => {
   const appt = card.appointment;
   const badge = getBadgeInfo(edital);
+  const mouseDownPos = React.useRef(null);
+
+  const handleMouseDown = useCallback((e) => {
+    mouseDownPos.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseUp = useCallback((e) => {
+    if (!mouseDownPos.current) return;
+    const dx = Math.abs(e.clientX - mouseDownPos.current.x);
+    const dy = Math.abs(e.clientY - mouseDownPos.current.y);
+    if (dx < 5 && dy < 5) {
+      onCardClick(card.id);
+    }
+    mouseDownPos.current = null;
+  }, [card.id, onCardClick]);
 
   const handleDragStart = useCallback((e) => {
     e.dataTransfer.setData('cardId', String(card.id));
@@ -60,12 +74,15 @@ const KanbanCard = React.memo(({ card, columnId, onCardClick, edital }) => {
 
   const handleDragEnd = useCallback((e) => {
     e.target.closest('.kanban-card')?.classList.remove('is-dragging');
+    mouseDownPos.current = null;
   }, []);
 
   return (
     <div 
       className="kanban-card"
       draggable
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -82,15 +99,6 @@ const KanbanCard = React.memo(({ card, columnId, onCardClick, edital }) => {
           <div className="client-avatar">{card.client.charAt(0)}</div>
           <span>{card.client}</span>
         </div>
-        <button 
-          className="card-view-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCardClick(card.id);
-          }}
-        >
-          <Eye size={14} />
-        </button>
       </div>
     </div>
   );
