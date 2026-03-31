@@ -39,28 +39,6 @@ app.get('/health', (req, res) => {
 });
 
 // ============================================
-// START SERVER IMMEDIATELY
-// ============================================
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log('[STARTUP] =========================================');
-  console.log(`[STARTUP] Server running at http://0.0.0.0:${port}`);
-  console.log(`[STARTUP] Health check: http://0.0.0.0:${port}/health`);
-  console.log('[STARTUP] =========================================');
-});
-
-// Handle server errors
-server.on('error', (err) => {
-  console.error('[STARTUP ERROR]', err.message);
-  process.exit(1);
-});
-
-// ============================================
-// STATIC FILES (after server starts)
-// ============================================
-const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
-
-// ============================================
 // SUPABASE INITIALIZATION (non-blocking)
 // ============================================
 let supabase = null;
@@ -86,7 +64,7 @@ let supabase = null;
 })();
 
 // ============================================
-// API ROUTES
+// API ROUTES (MUST be before static files)
 // ============================================
 app.get('/api/servicos', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
@@ -273,6 +251,12 @@ setInterval(async () => {
   }
 }, 60000);
 
+// ============================================
+// STATIC FILES (after API routes)
+// ============================================
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
 // Catch-all: serve React app (Express 5 syntax)
 app.use((req, res) => {
   try {
@@ -280,4 +264,20 @@ app.use((req, res) => {
   } catch (e) {
     res.send('CRM Server is Running');
   }
+});
+
+// ============================================
+// START SERVER (must be LAST)
+// ============================================
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log('[STARTUP] =========================================');
+  console.log(`[STARTUP] Server running at http://0.0.0.0:${port}`);
+  console.log(`[STARTUP] Health check: http://0.0.0.0:${port}/health`);
+  console.log('[STARTUP] =========================================');
+});
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error('[STARTUP ERROR]', err.message);
+  process.exit(1);
 });
