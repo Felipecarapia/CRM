@@ -137,8 +137,17 @@ const useStore = create((set, get) => ({
       const res = await fetch(`${API_URL}/clientes/${id}`, { method: 'DELETE' });
       console.log('Delete response:', res.status);
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Erro ao excluir');
+        const contentType = res.headers.get('content-type');
+        let errorMsg = 'Erro ao excluir';
+        if (contentType && contentType.includes('application/json')) {
+          const error = await res.json();
+          errorMsg = error.error || errorMsg;
+        } else {
+          const text = await res.text();
+          console.error('Non-JSON response:', text.substring(0, 200));
+          errorMsg = `Erro no servidor (${res.status})`;
+        }
+        throw new Error(errorMsg);
       }
       set((state) => ({ clientes: state.clientes.filter(c => c.id !== id) }));
       alert('Cliente excluído com sucesso!');
