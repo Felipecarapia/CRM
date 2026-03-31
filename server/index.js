@@ -18,16 +18,16 @@ const supabase = createClient(
 // Initialize tables
 async function initTables() {
   try {
-    await supabase.rpc('create_tables_if_not_exist');
-    console.log('Supabase tables initialized.');
-  } catch (err) {
-    // If RPC doesn't exist, try creating tables directly
-    try {
-      await supabase.from('clientes').select('id').limit(1);
+    const { data, error } = await supabase.from('clientes').select('id').limit(1);
+    if (error && error.code === 'PGRST116') {
+      console.log('Supabase connected. Tables exist but may be empty.');
+    } else if (error) {
+      console.log('Supabase connection error:', error.message);
+    } else {
       console.log('Supabase connected successfully.');
-    } catch (err2) {
-      console.log('Tables may need to be created manually in Supabase dashboard.');
     }
+  } catch (err) {
+    console.error('Supabase init error:', err.message);
   }
 }
 
@@ -97,6 +97,7 @@ app.get('/api/agent/identify-client', async (req, res) => {
 
 app.post('/api/agent/create-client', async (req, res) => {
   const { nome, telefone, email } = req.body;
+  console.log('[CREATE CLIENT] Request:', { nome, telefone, email });
   if (!nome || !telefone) return res.status(400).json({ error: 'Nome and Telefone are required' });
   try {
     const { data, error } = await supabase
@@ -105,13 +106,16 @@ app.post('/api/agent/create-client', async (req, res) => {
       .select()
       .single();
     if (error) {
+      console.error('[CREATE CLIENT] Supabase error:', error);
       if (error.code === '23505' || error.message?.includes('unique')) {
         return res.status(409).json({ error: 'Client with this phone already exists' });
       }
       throw error;
     }
+    console.log('[CREATE CLIENT] Success:', data);
     res.status(201).json(data);
   } catch (err) {
+    console.error('[CREATE CLIENT] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -226,6 +230,9 @@ app.delete('/api/agendamentos/:id', async (req, res) => {
 
 app.delete('/api/clientes/:id', async (req, res) => {
   try {
+    // Remove agendamentos primeiro para evitar erro de chave estrangeira
+    await supabase.from('agendamentos').delete().eq('clienteId', req.params.id);
+    
     const { error } = await supabase
       .from('clientes')
       .delete()
@@ -233,6 +240,7 @@ app.delete('/api/clientes/:id', async (req, res) => {
     if (error) throw error;
     res.json({ success: true });
   } catch (err) {
+    console.error('Erro ao excluir cliente:', err);
     res.status(500).json({ error: err.message });
   }
 });
