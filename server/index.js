@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const port = process.env.PORT || 3001;
@@ -7,7 +8,11 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => res.send('CRM Server is Running'));
+// Serve static files from Vite build
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+app.get('/', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
 
 // Supabase client
 const supabase = createClient(
@@ -271,4 +276,9 @@ setInterval(async () => {
 app.listen(port, () => {
   console.log(`CRM Agent API running at http://localhost:${port}`);
   console.log('Database: Supabase');
+});
+
+// Catch-all: serve React app for any non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
