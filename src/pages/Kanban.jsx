@@ -270,7 +270,7 @@ const Kanban = () => {
             <div className="modal-header">
               <input
                 className="edital-title-input"
-                placeholder="Título do Edital"
+                placeholder="Título"
                 value={editalTitulo}
                 onChange={(e) => setEditalTitulo(e.target.value)}
               />
