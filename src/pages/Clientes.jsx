@@ -14,9 +14,7 @@ const Clientes = () => {
   const [formData, setFormData] = useState({
     nome: '',
     telefone: '',
-    email: '',
-    status: 'Lead',
-    ltv: 0
+    email: ''
   });
 
   const filteredClientes = clientes.filter(c => 
@@ -31,7 +29,7 @@ const Clientes = () => {
     addCliente(formData);
     
     // Reset and close
-    setFormData({ nome: '', telefone: '', email: '', status: 'Lead', ltv: 0 });
+    setFormData({ nome: '', telefone: '', email: '' });
     setIsModalOpen(false);
   };
 
@@ -71,8 +69,6 @@ const Clientes = () => {
               <th>Cliente</th>
               <th>WhatsApp</th>
               <th>E-mail</th>
-              <th>Faturamento</th>
-              <th>Status</th>
               <th style={{ textAlign: 'right' }}>Ações</th>
             </tr>
           </thead>
@@ -87,12 +83,6 @@ const Clientes = () => {
                 </td>
                 <td>{cliente.telefone}</td>
                 <td className="text-muted">{cliente.email || 'N/A'}</td>
-                <td><strong style={{ color: '#fff' }}>R$ {(cliente.ltv || 0).toLocaleString('pt-BR')}</strong></td>
-                <td>
-                  <span className={`status-badge stat-${cliente.status.toLowerCase()}`}>
-                    {cliente.status}
-                  </span>
-                </td>
                 <td style={{ textAlign: 'right' }}>
                   <button className="btn-icon" style={{ opacity: 0.6 }}><MoreVertical size={18}/></button>
                 </td>
@@ -100,7 +90,7 @@ const Clientes = () => {
             ))}
             {filteredClientes.length === 0 && (
               <tr>
-                <td colSpan="6" style={{textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
+                <td colSpan="4" style={{textAlign: 'center', padding: '64px', color: 'var(--color-text-muted)' }}>
                   Nenhum cliente encontrado na base.
                 </td>
               </tr>
@@ -156,32 +146,6 @@ const Clientes = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                   />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Faturamento</label>
-                    <input 
-                      type="number" 
-                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(0,0,0,0.2)', border: 'var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: '#fff', outline: 'none' }}
-                      placeholder="R$ 0,00" 
-                      value={formData.ltv}
-                      onChange={(e) => setFormData({...formData, ltv: parseFloat(e.target.value) || 0})}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>Status</label>
-                    <select 
-                      style={{ width: '100%', padding: '12px 16px', background: 'rgba(0,0,0,0.2)', border: 'var(--border-subtle)', borderRadius: 'var(--radius-sm)', color: '#fff', outline: 'none' }}
-                      value={formData.status}
-                      onChange={(e) => setFormData({...formData, status: e.target.value})}
-                    >
-                      <option value="Lead">Lead</option>
-                      <option value="Cliente">Cliente</option>
-                      <option value="Inativo">Inativo</option>
-                    </select>
-                  </div>
                 </div>
               </div>
 
