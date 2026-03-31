@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@libsql/client');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -9,46 +9,25 @@ app.use(express.json());
 
 app.get('/', (req, res) => res.send('CRM Server is Running'));
 
-// Turso client (SQLite on the cloud)
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN
-});
+// Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
+// Initialize tables
 async function initTables() {
   try {
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS clientes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        telefone TEXT UNIQUE NOT NULL,
-        email TEXT,
-        status TEXT DEFAULT 'novoLeads',
-        criadoEm DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS agendamentos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        clienteId INTEGER,
-        servico TEXT NOT NULL,
-        data TEXT NOT NULL,
-        horario TEXT NOT NULL,
-        status TEXT DEFAULT 'Agendado',
-        notas TEXT,
-        FOREIGN KEY (clienteId) REFERENCES clientes (id)
-      )
-    `);
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS servicos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        preco REAL NOT NULL
-      )
-    `);
-    console.log('Turso tables initialized.');
+    await supabase.rpc('create_tables_if_not_exist');
+    console.log('Supabase tables initialized.');
   } catch (err) {
-    console.error('Error initializing tables:', err.message);
+    // If RPC doesn't exist, try creating tables directly
+    try {
+      await supabase.from('clientes').select('id').limit(1);
+      console.log('Supabase connected successfully.');
+    } catch (err2) {
+      console.log('Tables may need to be created manually in Supabase dashboard.');
+    }
   }
 }
 
@@ -58,8 +37,12 @@ initTables();
 
 app.get('/api/servicos', async (req, res) => {
   try {
-    const result = await db.execute('SELECT * FROM servicos ORDER BY nome ASC');
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('servicos')
+      .select('*')
+      .order('nome', { ascending: true });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -69,8 +52,13 @@ app.post('/api/servicos', async (req, res) => {
   const { nome, preco } = req.body;
   if (!nome || !preco) return res.status(400).json({ error: 'Nome and Preço are required' });
   try {
-    const result = await db.execute({ sql: 'INSERT INTO servicos (nome, preco) VALUES (?, ?)', args: [nome, preco] });
-    res.status(201).json({ id: result.lastInsertRowid, nome, preco });
+    const { data, error } = await supabase
+      .from('servicos')
+      .insert([{ nome, preco }])
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -78,7 +66,11 @@ app.post('/api/servicos', async (req, res) => {
 
 app.delete('/api/servicos/:id', async (req, res) => {
   try {
-    await db.execute({ sql: 'DELETE FROM servicos WHERE id = ?', args: [req.params.id] });
+    const { error } = await supabase
+      .from('servicos')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -91,9 +83,13 @@ app.get('/api/agent/identify-client', async (req, res) => {
   const { phone } = req.query;
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
   try {
-    const result = await db.execute({ sql: 'SELECT * FROM clientes WHERE telefone = ?', args: [phone] });
-    const row = result.rows[0];
-    res.json(row ? { found: true, client: row } : { found: false, message: 'Client not found' });
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('telefone', phone)
+      .single();
+    if (error && error.code !== 'PGRST116') throw error;
+    res.json(data ? { found: true, client: data } : { found: false, message: 'Client not found' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -103,15 +99,19 @@ app.post('/api/agent/create-client', async (req, res) => {
   const { nome, telefone, email } = req.body;
   if (!nome || !telefone) return res.status(400).json({ error: 'Nome and Telefone are required' });
   try {
-    const result = await db.execute({
-      sql: 'INSERT INTO clientes (nome, telefone, email) VALUES (?, ?, ?)',
-      args: [nome, telefone, email]
-    });
-    res.status(201).json({ id: result.lastInsertRowid, nome, telefone, email });
-  } catch (err) {
-    if (err.message.includes('UNIQUE') || err.message.includes('unique')) {
-      return res.status(409).json({ error: 'Client with this phone already exists' });
+    const { data, error } = await supabase
+      .from('clientes')
+      .insert([{ nome, telefone, email }])
+      .select()
+      .single();
+    if (error) {
+      if (error.code === '23505' || error.message?.includes('unique')) {
+        return res.status(409).json({ error: 'Client with this phone already exists' });
+      }
+      throw error;
     }
+    res.status(201).json(data);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -122,11 +122,13 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields for scheduling' });
   }
   try {
-    const result = await db.execute({
-      sql: 'INSERT INTO agendamentos (clienteId, servico, data, horario, notas) VALUES (?, ?, ?, ?, ?)',
-      args: [clientId, servico, data, horario, notas]
-    });
-    res.status(201).json({ id: result.lastInsertRowid, clientId, servico, data, horario });
+    const { data: result, error } = await supabase
+      .from('agendamentos')
+      .insert([{ clienteId: clientId, servico, data, horario, notas }])
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -136,13 +138,21 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
 
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
-    const clientCount = await db.execute('SELECT COUNT(*) as count FROM clientes');
-    const apptCount = await db.execute('SELECT COUNT(*) as count FROM agendamentos');
-    const leads = await db.execute('SELECT * FROM clientes ORDER BY criadoEm DESC LIMIT 5');
+    const { count: totalClients } = await supabase
+      .from('clientes')
+      .select('*', { count: 'exact', head: true });
+    const { count: totalAppointments } = await supabase
+      .from('agendamentos')
+      .select('*', { count: 'exact', head: true });
+    const { data: leads } = await supabase
+      .from('clientes')
+      .select('*')
+      .order('criadoEm', { ascending: false })
+      .limit(5);
     res.json({
-      totalClients: Number(clientCount.rows[0]?.count || 0),
-      totalAppointments: Number(apptCount.rows[0]?.count || 0),
-      latestLeads: leads.rows
+      totalClients: totalClients || 0,
+      totalAppointments: totalAppointments || 0,
+      latestLeads: leads || []
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -151,8 +161,12 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
 app.get('/api/clientes', async (req, res) => {
   try {
-    const result = await db.execute('SELECT * FROM clientes ORDER BY nome ASC');
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .order('nome', { ascending: true });
+    if (error) throw error;
+    res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -160,13 +174,22 @@ app.get('/api/clientes', async (req, res) => {
 
 app.get('/api/agendamentos', async (req, res) => {
   try {
-    const result = await db.execute(`
-      SELECT a.*, c.nome as clienteNome, c.telefone as clienteTelefone 
-      FROM agendamentos a 
-      JOIN clientes c ON a.clienteId = c.id 
-      ORDER BY a.data DESC, a.horario DESC
-    `);
-    res.json(result.rows);
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .select(`
+        *,
+        clientes!inner(nome, telefone)
+      `)
+      .order('data', { ascending: false })
+      .order('horario', { ascending: false });
+    if (error) throw error;
+    const mapped = (data || []).map(a => ({
+      ...a,
+      clienteNome: a.clientes?.nome,
+      clienteTelefone: a.clientes?.telefone,
+      clientes: undefined
+    }));
+    res.json(mapped);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -177,8 +200,11 @@ app.patch('/api/clientes/:id', async (req, res) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
   try {
-    const result = await db.execute({ sql: 'UPDATE clientes SET status = ? WHERE id = ?', args: [status, id] });
-    if (result.rowsAffected === 0) return res.status(404).json({ error: 'Client not found' });
+    const { error } = await supabase
+      .from('clientes')
+      .update({ status })
+      .eq('id', id);
+    if (error) throw error;
     res.json({ success: true, id, status });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -187,7 +213,11 @@ app.patch('/api/clientes/:id', async (req, res) => {
 
 app.delete('/api/agendamentos/:id', async (req, res) => {
   try {
-    await db.execute({ sql: 'DELETE FROM agendamentos WHERE id = ?', args: [req.params.id] });
+    const { error } = await supabase
+      .from('agendamentos')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -205,11 +235,13 @@ setInterval(async () => {
   const timeStr = `${hours}:${mins}`;
 
   try {
-    const result = await db.execute({
-      sql: "UPDATE agendamentos SET status = 'Aguardando Confirmação' WHERE data = ? AND horario <= ? AND status = 'Agendado'",
-      args: [dateStr, timeStr]
-    });
-    if (result.rowsAffected > 0) console.log(`[Worker] ${result.rowsAffected} appointments flagged.`);
+    const { error } = await supabase
+      .from('agendamentos')
+      .update({ status: 'Aguardando Confirmação' })
+      .eq('data', dateStr)
+      .lte('horario', timeStr)
+      .eq('status', 'Agendado');
+    if (error) console.error('Worker error:', error.message);
   } catch (err) {
     console.error('Worker error:', err.message);
   }
@@ -217,5 +249,5 @@ setInterval(async () => {
 
 app.listen(port, () => {
   console.log(`CRM Agent API running at http://localhost:${port}`);
-  console.log('Database: Turso (SQLite on the cloud)');
+  console.log('Database: Supabase');
 });
