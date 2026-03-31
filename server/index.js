@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createClient } from '@supabase/supabase-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,39 +12,60 @@ const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from Vite build
+// Health check - responde sempre
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/', (req, res) => res.json({ status: 'CRM Server Running' }));
+
+// Serve static files
 const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
-
-app.get('/', (req, res) => res.sendFile(path.join(distPath, 'index.html')));
-
-// Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
-
-// Initialize tables check
-async function initTables() {
-  try {
-    const { data, error } = await supabase.from('clientes').select('id').limit(1);
-    if (error && error.code === 'PGRST116') {
-      console.log('Supabase connected. Tables exist but may be empty.');
-    } else if (error) {
-      console.log('Supabase connection error:', error.message);
-    } else {
-      console.log('Supabase connected successfully.');
-    }
-  } catch (err) {
-    console.error('Supabase init error:', err.message);
-  }
+try {
+  app.use(express.static(distPath));
+} catch (e) {
+  // Static files may not exist during build
 }
 
-initTables();
+// Catch-all para React Router
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return res.status(503).json({ error: 'Database not ready' });
+  try {
+    res.sendFile(path.join(distPath, 'index.html'));
+  } catch (e) {
+    res.send('CRM Server Running');
+  }
+});
+
+// Inicia o servidor IMEDIATAMENTE (antes de carregar Supabase)
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`CRM Server running on port ${port}`);
+});
+
+// Carrega Supabase de forma assíncrona (não bloqueia)
+let supabase = null;
+
+(async () => {
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+      supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+      console.log('Supabase client created.');
+      const { error } = await supabase.from('clientes').select('id').limit(1);
+      if (error && error.code !== 'PGRST116') {
+        console.log('Supabase note:', error.message);
+      } else {
+        console.log('Supabase connected.');
+      }
+    } else {
+      console.log('Supabase variables not set yet.');
+    }
+  } catch (err) {
+    console.log('Supabase init skipped:', err.message);
+  }
+})();
 
 // --- Servicos ---
 
 app.get('/api/servicos', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
     const { data, error } = await supabase.from('servicos').select('*').order('nome', { ascending: true });
     if (error) throw error;
@@ -56,6 +76,7 @@ app.get('/api/servicos', async (req, res) => {
 });
 
 app.post('/api/servicos', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { nome, preco } = req.body;
   if (!nome || !preco) return res.status(400).json({ error: 'Nome and Preço are required' });
   try {
@@ -68,6 +89,7 @@ app.post('/api/servicos', async (req, res) => {
 });
 
 app.delete('/api/servicos/:id', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
     const { error } = await supabase.from('servicos').delete().eq('id', req.params.id);
     if (error) throw error;
@@ -80,6 +102,7 @@ app.delete('/api/servicos/:id', async (req, res) => {
 // --- Agent Tools ---
 
 app.get('/api/agent/identify-client', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { phone } = req.query;
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
   try {
@@ -92,6 +115,7 @@ app.get('/api/agent/identify-client', async (req, res) => {
 });
 
 app.post('/api/agent/create-client', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { nome, telefone, email } = req.body;
   console.log('[CREATE CLIENT] Request:', { nome, telefone, email });
   if (!nome || !telefone) return res.status(400).json({ error: 'Nome and Telefone are required' });
@@ -113,6 +137,7 @@ app.post('/api/agent/create-client', async (req, res) => {
 });
 
 app.post('/api/agent/schedule-meeting', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { clientId, servico, data, horario, notas } = req.body;
   if (!clientId || !servico || !data || !horario) {
     return res.status(400).json({ error: 'Missing required fields for scheduling' });
@@ -129,6 +154,7 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
 // --- Dashboard ---
 
 app.get('/api/dashboard/stats', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
     const { count: totalClients } = await supabase.from('clientes').select('*', { count: 'exact', head: true });
     const { count: totalAppointments } = await supabase.from('agendamentos').select('*', { count: 'exact', head: true });
@@ -144,6 +170,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
 });
 
 app.get('/api/clientes', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
     const { data, error } = await supabase.from('clientes').select('*').order('nome', { ascending: true });
     if (error) throw error;
@@ -154,6 +181,7 @@ app.get('/api/clientes', async (req, res) => {
 });
 
 app.get('/api/agendamentos', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
     const { data, error } = await supabase.from('agendamentos').select(`*, clientes!inner(nome, telefone)`).order('data', { ascending: false }).order('horario', { ascending: false });
     if (error) throw error;
@@ -170,6 +198,7 @@ app.get('/api/agendamentos', async (req, res) => {
 });
 
 app.patch('/api/clientes/:id', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { id } = req.params;
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
@@ -183,6 +212,7 @@ app.patch('/api/clientes/:id', async (req, res) => {
 });
 
 app.delete('/api/agendamentos/:id', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
     const { error } = await supabase.from('agendamentos').delete().eq('id', req.params.id);
     if (error) throw error;
@@ -193,10 +223,9 @@ app.delete('/api/agendamentos/:id', async (req, res) => {
 });
 
 app.delete('/api/clientes/:id', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
-    // Remove agendamentos primeiro para evitar erro de chave estrangeira
     await supabase.from('agendamentos').delete().eq('clienteId', req.params.id);
-    
     const { error } = await supabase.from('clientes').delete().eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
@@ -209,6 +238,7 @@ app.delete('/api/clientes/:id', async (req, res) => {
 // --- Background Worker ---
 
 setInterval(async () => {
+  if (!supabase) return;
   const now = new Date();
   const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
   const dateStr = twoHoursLater.toISOString().split('T')[0];
@@ -224,12 +254,16 @@ setInterval(async () => {
   }
 }, 60000);
 
-app.listen(port, () => {
-  console.log(`CRM Agent API running at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`CRM Agent API running at http://0.0.0.0:${port}`);
   console.log('Database: Supabase');
 });
 
 // Catch-all: serve React app for any non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+  try {
+    res.sendFile(path.join(distPath, 'index.html'));
+  } catch (e) {
+    res.send('CRM Server is Running');
+  }
 });
