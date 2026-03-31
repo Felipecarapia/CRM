@@ -56,21 +56,31 @@ const useStore = create((set, get) => ({
   fetchData: async () => {
     set({ isLoading: true });
     try {
+      console.log('Fetching data from:', API_URL);
       const [clientsRes, apptsRes, servicesRes] = await Promise.all([
         fetch(`${API_URL}/clientes`),
         fetch(`${API_URL}/agendamentos`),
         fetch(`${API_URL}/servicos`)
       ]);
+
+      if (!clientsRes.ok) throw new Error('Erro ao buscar clientes: ' + clientsRes.status);
+      if (!apptsRes.ok) throw new Error('Erro ao buscar agendamentos: ' + apptsRes.status);
+      if (!servicesRes.ok) throw new Error('Erro ao buscar serviços: ' + servicesRes.status);
+
       const clientes = await clientsRes.json();
       const agendamentos = await apptsRes.json();
       const servicos = await servicesRes.json();
-      
+
+      console.log('Fetched clients:', clientes.length);
+      console.log('Fetched appointments:', agendamentos.length);
+
       const mappedAgendamentos = agendamentos.map(a => ({
         ...a,
         cliente: a.clienteNome
       }));
       set({ clientes, agendamentos: mappedAgendamentos, servicos, isLoading: false });
     } catch (err) {
+      console.error('Fetch error:', err);
       set({ error: err.message, isLoading: false });
     }
   },
@@ -109,23 +119,32 @@ const useStore = create((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(novoCliente)
       });
-      const saved = await res.json();
-      if (res.ok) {
-        set((state) => ({ clientes: [...state.clientes, saved] }));
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('API Error:', data);
+        throw new Error(data.error || 'Erro ao criar cliente');
       }
+      set((state) => ({ clientes: [...state.clientes, data] }));
     } catch (err) {
       console.error('Error adding client:', err);
+      alert('Erro ao salvar cliente: ' + err.message);
     }
   },
 
   deleteCliente: async (id) => {
     try {
+      console.log('Deleting client:', id);
       const res = await fetch(`${API_URL}/clientes/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        set((state) => ({ clientes: state.clientes.filter(c => c.id !== id) }));
+      console.log('Delete response:', res.status);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Erro ao excluir');
       }
+      set((state) => ({ clientes: state.clientes.filter(c => c.id !== id) }));
+      alert('Cliente excluído com sucesso!');
     } catch (err) {
       console.error('Error deleting client:', err);
+      alert('Erro ao excluir cliente: ' + err.message);
     }
   },
 
