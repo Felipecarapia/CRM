@@ -3,7 +3,6 @@ import {
   MoreHorizontal, 
   MessageCircle, 
   Calendar, 
-  RefreshCw,
   X,
   Phone,
   Mail,
@@ -28,25 +27,28 @@ const COLUMNS = [
   { id: 'posVenda', title: 'Pós-Venda', color: '#a855f7' }
 ];
 
-const getBadgeInfo = (appt) => {
-  if (!appt) return null;
-  const apptDate = new Date(`${appt.data}T${appt.horario}`);
+const getBadgeInfo = (edital) => {
+  if (!edital || !edital.data) return null;
   const now = new Date();
-  const diffHours = (apptDate - now) / (1000 * 60 * 60);
+  const today = now.toISOString().split('T')[0];
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-  if (appt.status === 'Aguardando Confirmação') {
-    return { text: 'Vencimento 2h', urgent: true };
-  } else if (diffHours > 0 && diffHours < 24) {
-    return { text: `Hoje ${appt.horario}`, urgent: false };
-  } else if (diffHours >= 24 && diffHours < 48) {
-    return { text: `Amanhã ${appt.horario}`, urgent: false };
+  const isExpired = edital.data < today || (edital.data === today && edital.horario && edital.horario < now.toTimeString().slice(0, 5));
+
+  if (edital.data === today) {
+    return { text: `Hoje ${edital.horario || ''}`, variant: 'expired' };
+  } else if (edital.data === tomorrowStr) {
+    return { text: `Amanhã ${edital.horario || ''}`, variant: 'warning' };
+  } else {
+    return { text: `${edital.data}${edital.horario ? ' às ' + edital.horario : ''}`, variant: 'normal' };
   }
-  return null;
 };
 
-const KanbanCard = React.memo(({ card, columnId, onCardClick }) => {
+const KanbanCard = React.memo(({ card, columnId, onCardClick, edital }) => {
   const appt = card.appointment;
-  const badge = getBadgeInfo(appt);
+  const badge = getBadgeInfo(edital);
 
   const handleDragStart = useCallback((e) => {
     e.dataTransfer.setData('cardId', String(card.id));
@@ -67,8 +69,8 @@ const KanbanCard = React.memo(({ card, columnId, onCardClick }) => {
       onDragEnd={handleDragEnd}
     >
       {badge && (
-        <div className={`badge-vencimento ${badge.urgent ? 'urgent' : ''}`}>
-          {badge.urgent ? <RefreshCw size={12} className="animate-spin-slow" /> : <Calendar size={12} />}
+        <div className={`badge-vencimento badge-${badge.variant}`}>
+          <Calendar size={12} />
           {badge.text}
         </div>
       )}
@@ -93,7 +95,7 @@ const KanbanCard = React.memo(({ card, columnId, onCardClick }) => {
   );
 });
 
-const KanbanColumn = React.memo(({ column, cards, isDraggingOver, onDragOver, onDrop, onDragEnter, onCardClick }) => (
+const KanbanColumn = React.memo(({ column, cards, isDraggingOver, onDragOver, onDrop, onDragEnter, onCardClick, edictais }) => (
   <div 
     className={`kanban-column ${isDraggingOver ? 'column-hovered' : ''}`}
     onDrop={onDrop}
@@ -121,6 +123,7 @@ const KanbanColumn = React.memo(({ column, cards, isDraggingOver, onDragOver, on
           card={card} 
           columnId={column.id}
           onCardClick={onCardClick}
+          edital={edictais[card.id]}
         />
       ))}
       {isDraggingOver && <div className="drop-indicator"></div>}
@@ -138,6 +141,7 @@ const Kanban = () => {
   const [editalDescricao, setEditalDescricao] = useState('');
   const [editalData, setEditalData] = useState('');
   const [editalHorario, setEditalHorario] = useState('');
+  const [edictais, setEdictais] = useState(() => JSON.parse(localStorage.getItem('crm_edictais') || '{}'));
 
   const kanbanCards = useMemo(() => {
     const acc = Object.fromEntries(CATEGORIES.map(cat => [cat, []]));
@@ -252,6 +256,7 @@ const Kanban = () => {
             onDrop={(e) => handleDrop(e, col.id)}
             onDragEnter={(e) => handleDragEnter(e, col.id)}
             onCardClick={handleCardClick}
+            edictais={edictais}
           />
         ))}
       </div>
@@ -314,14 +319,17 @@ const Kanban = () => {
                   Cancelar
                 </button>
                 <button className="btn btn-primary" onClick={() => {
-                  const edictais = JSON.parse(localStorage.getItem('crm_edictais') || '{}');
-                  edictais[selectedClient.id] = {
-                    titulo: editalTitulo,
-                    descricao: editalDescricao,
-                    data: editalData,
-                    horario: editalHorario
+                  const updated = {
+                    ...edictais,
+                    [selectedClient.id]: {
+                      titulo: editalTitulo,
+                      descricao: editalDescricao,
+                      data: editalData,
+                      horario: editalHorario
+                    }
                   };
-                  localStorage.setItem('crm_edictais', JSON.stringify(edictais));
+                  localStorage.setItem('crm_edictais', JSON.stringify(updated));
+                  setEdictais(updated);
                   setSelectedClient(null);
                 }}>
                   Salvar

@@ -386,21 +386,33 @@
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
   border-radius: 20px;
   font-size: 0.725rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.badge-vencimento.urgent {
+.badge-expired {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.2);
   animation: pulse-border 2s infinite;
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.badge-normal {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 @keyframes pulse-border {
