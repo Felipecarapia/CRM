@@ -136,7 +136,8 @@ const Kanban = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [editalTitulo, setEditalTitulo] = useState('');
   const [editalDescricao, setEditalDescricao] = useState('');
-  const [editalVencimento, setEditalVencimento] = useState('');
+  const [editalData, setEditalData] = useState('');
+  const [editalHorario, setEditalHorario] = useState('');
 
   const kanbanCards = useMemo(() => {
     const acc = Object.fromEntries(CATEGORIES.map(cat => [cat, []]));
@@ -174,7 +175,8 @@ const Kanban = () => {
       const existing = edictais[cardId];
       setEditalTitulo(existing?.titulo || '');
       setEditalDescricao(existing?.descricao || '');
-      setEditalVencimento(existing?.vencimento || '');
+      setEditalData(existing?.data || '');
+      setEditalHorario(existing?.horario || '');
     }
   }, [clientes]);
 
@@ -295,14 +297,14 @@ const Kanban = () => {
                   <input
                     type="date"
                     className="edital-input"
-                    value={editalVencimento}
-                    onChange={(e) => setEditalVencimento(e.target.value)}
+                    value={editalData}
+                    onChange={(e) => setEditalData(e.target.value)}
                   />
                   <input
                     type="time"
                     className="edital-input"
-                    value={editalVencimento}
-                    onChange={(e) => setEditalVencimento(e.target.value)}
+                    value={editalHorario}
+                    onChange={(e) => setEditalHorario(e.target.value)}
                   />
                 </div>
               </div>
@@ -316,7 +318,8 @@ const Kanban = () => {
                   edictais[selectedClient.id] = {
                     titulo: editalTitulo,
                     descricao: editalDescricao,
-                    vencimento: editalVencimento
+                    data: editalData,
+                    horario: editalHorario
                   };
                   localStorage.setItem('crm_edictais', JSON.stringify(edictais));
                   setSelectedClient(null);
