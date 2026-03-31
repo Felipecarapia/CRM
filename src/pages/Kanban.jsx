@@ -139,6 +139,7 @@ const Kanban = () => {
   const [draggedOverColumn, setDraggedOverColumn] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
   const [editalTitulo, setEditalTitulo] = useState('');
+  const [editalDescricaoTitulo, setEditalDescricaoTitulo] = useState('');
   const [editalDescricao, setEditalDescricao] = useState('');
   const [editalData, setEditalData] = useState('');
   const [editalHorario, setEditalHorario] = useState('');
@@ -179,6 +180,7 @@ const Kanban = () => {
       const edictais = JSON.parse(localStorage.getItem('crm_edictais') || '{}');
       const existing = edictais[cardId];
       setEditalTitulo(existing?.titulo || '');
+      setEditalDescricaoTitulo(existing?.descricaoTitulo || '');
       setEditalDescricao(existing?.descricao || '');
       setEditalData(existing?.data || '');
       setEditalHorario(existing?.horario || '');
@@ -283,9 +285,12 @@ const Kanban = () => {
               </div>
 
               <div className="edital-field">
-                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', display: 'block' }}>
-                  Descrição
-                </label>
+                <input
+                  className="edital-section-title-input"
+                  placeholder="Título da seção"
+                  value={editalDescricaoTitulo}
+                  onChange={(e) => setEditalDescricaoTitulo(e.target.value)}
+                />
                 <textarea
                   className="edital-textarea"
                   placeholder="Digite a descrição do edital..."
@@ -324,6 +329,7 @@ const Kanban = () => {
                     ...edictais,
                     [selectedClient.id]: {
                       titulo: editalTitulo,
+                      descricaoTitulo: editalDescricaoTitulo,
                       descricao: editalDescricao,
                       data: editalData,
                       horario: editalHorario

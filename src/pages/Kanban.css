@@ -162,6 +162,28 @@
   flex-direction: column;
 }
 
+.edital-section-title-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  outline: none;
+  margin-bottom: 8px;
+}
+
+.edital-section-title-input:focus {
+  border-color: var(--color-primary);
+}
+
+.edital-section-title-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
 .edital-textarea {
   width: 100%;
   padding: 14px 16px;
