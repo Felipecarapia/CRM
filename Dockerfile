@@ -6,6 +6,8 @@ RUN npm install
 
 COPY . .
 
+ENV REBUILD_TIMESTAMP=2026033102
+
 RUN npm run build
 
 EXPOSE 8080
