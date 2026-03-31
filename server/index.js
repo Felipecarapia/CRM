@@ -9,13 +9,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 8080;
 
+console.log(`[STARTUP] Initializing CRM server...`);
+console.log(`[STARTUP] PORT env: ${process.env.PORT || '(not set, using 8080)'}`);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check - always responds immediately
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
-app.get('/', (req, res) => res.json({ status: 'CRM Server Running' }));
+// Health check - always responds immediately (BEFORE other routes)
+app.get('/health', (req, res) => {
+  console.log('[HEALTH] Health check requested');
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/', (req, res) => {
+  console.log('[ROOT] Root endpoint requested');
+  res.status(200).json({ status: 'CRM Server Running', port });
+});
 
 // Serve static files
 const distPath = path.join(__dirname, '..', 'dist');
@@ -237,12 +247,6 @@ setInterval(async () => {
   }
 }, 60000);
 
-// Start server AFTER configuring everything
-app.listen(port, '0.0.0.0', () => {
-  console.log(`CRM Agent API running at http://0.0.0.0:${port}`);
-  console.log('Database: Supabase');
-});
-
 // Catch-all: serve React app for any non-API routes (MUST be last)
 app.get('*', (req, res) => {
   try {
@@ -250,4 +254,10 @@ app.get('*', (req, res) => {
   } catch (e) {
     res.send('CRM Server is Running');
   }
+});
+
+// Start server AFTER configuring everything
+app.listen(port, '0.0.0.0', () => {
+  console.log(`CRM Agent API running at http://0.0.0.0:${port}`);
+  console.log('Database: Supabase');
 });
