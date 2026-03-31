@@ -38,10 +38,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/', (req, res) => {
-  res.status(200).json({ status: 'CRM Server Running', port });
-});
-
 // ============================================
 // START SERVER IMMEDIATELY
 // ============================================
