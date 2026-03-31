@@ -9,33 +9,52 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 8080;
 
-console.log(`[STARTUP] Initializing CRM server...`);
+console.log('[STARTUP] =========================================');
+console.log('[STARTUP] Starting CRM server...');
 console.log(`[STARTUP] PORT env: ${process.env.PORT || '(not set, using 8080)'}`);
+console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+console.log('[STARTUP] =========================================');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check - always responds immediately (BEFORE other routes)
+// ============================================
+// HEALTH CHECK - Must respond immediately
+// ============================================
 app.get('/health', (req, res) => {
-  console.log('[HEALTH] Health check requested');
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.get('/', (req, res) => {
-  console.log('[ROOT] Root endpoint requested');
   res.status(200).json({ status: 'CRM Server Running', port });
 });
 
-// Serve static files
-const distPath = path.join(__dirname, '..', 'dist');
-try {
-  app.use(express.static(distPath));
-} catch (e) {
-  // Static files may not exist during build
-}
+// ============================================
+// START SERVER IMMEDIATELY
+// ============================================
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log('[STARTUP] =========================================');
+  console.log(`[STARTUP] Server running at http://0.0.0.0:${port}`);
+  console.log(`[STARTUP] Health check: http://0.0.0.0:${port}/health`);
+  console.log('[STARTUP] =========================================');
+});
 
-// Initialize Supabase asynchronously (non-blocking)
+// Handle server errors
+server.on('error', (err) => {
+  console.error('[STARTUP ERROR]', err.message);
+  process.exit(1);
+});
+
+// ============================================
+// STATIC FILES (after server starts)
+// ============================================
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// ============================================
+// SUPABASE INITIALIZATION (non-blocking)
+// ============================================
 let supabase = null;
 
 (async () => {
@@ -43,23 +62,24 @@ let supabase = null;
     const { createClient } = await import('@supabase/supabase-js');
     if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
       supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-      console.log('Supabase client created.');
+      console.log('[STARTUP] Supabase client created');
       const { error } = await supabase.from('clientes').select('id').limit(1);
       if (error && error.code !== 'PGRST116') {
-        console.log('Supabase note:', error.message);
+        console.log('[STARTUP] Supabase note:', error.message);
       } else {
-        console.log('Supabase connected.');
+        console.log('[STARTUP] Supabase connected successfully');
       }
     } else {
-      console.log('Supabase variables not set yet.');
+      console.log('[STARTUP] Supabase variables not set - database features disabled');
     }
   } catch (err) {
-    console.log('Supabase init skipped:', err.message);
+    console.log('[STARTUP] Supabase init error:', err.message);
   }
 })();
 
-// API Routes - MUST be defined before catch-all
-// --- Services ---
+// ============================================
+// API ROUTES
+// ============================================
 app.get('/api/servicos', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
@@ -95,7 +115,6 @@ app.delete('/api/servicos/:id', async (req, res) => {
   }
 });
 
-// --- Agent Tools ---
 app.get('/api/agent/identify-client', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { phone } = req.query;
@@ -146,7 +165,6 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
   }
 });
 
-// --- Dashboard ---
 app.get('/api/dashboard/stats', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
@@ -229,7 +247,7 @@ app.delete('/api/clientes/:id', async (req, res) => {
   }
 });
 
-// --- Background Worker ---
+// Background Worker
 setInterval(async () => {
   if (!supabase) return;
   const now = new Date();
@@ -247,17 +265,11 @@ setInterval(async () => {
   }
 }, 60000);
 
-// Catch-all: serve React app for any non-API routes (MUST be last)
+// Catch-all: serve React app
 app.get('*', (req, res) => {
   try {
     res.sendFile(path.join(distPath, 'index.html'));
   } catch (e) {
     res.send('CRM Server is Running');
   }
-});
-
-// Start server AFTER configuring everything
-app.listen(port, '0.0.0.0', () => {
-  console.log(`CRM Agent API running at http://0.0.0.0:${port}`);
-  console.log('Database: Supabase');
 });
