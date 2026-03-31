@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { Search, Filter, MoreVertical, Plus, X } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Filter, MoreVertical, Plus, X, Trash2 } from 'lucide-react';
 import useStore from '../store/useStore';
 import './Clientes.css';
 
 const Clientes = () => {
   const clientes = useStore(state => state.clientes);
   const addCliente = useStore(state => state.addCliente);
+  const deleteCliente = useStore(state => state.deleteCliente);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const menuRef = useRef(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -32,6 +35,23 @@ const Clientes = () => {
     setFormData({ nome: '', telefone: '', email: '' });
     setIsModalOpen(false);
   };
+
+  const handleDelete = (id) => {
+    if (confirm('Tem certeza que deseja excluir este cliente?')) {
+      deleteCliente(id);
+      setOpenMenuId(null);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="clientes-page animate-fade-in">
@@ -83,8 +103,21 @@ const Clientes = () => {
                 </td>
                 <td>{cliente.telefone}</td>
                 <td className="text-muted">{cliente.email || 'N/A'}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="btn-icon" style={{ opacity: 0.6 }}><MoreVertical size={18}/></button>
+                <td style={{ textAlign: 'right', position: 'relative' }}>
+                  <button 
+                    className="btn-icon" 
+                    style={{ opacity: 0.6 }}
+                    onClick={() => setOpenMenuId(openMenuId === cliente.id ? null : cliente.id)}
+                  >
+                    <MoreVertical size={18}/>
+                  </button>
+                  {openMenuId === cliente.id && (
+                    <div ref={menuRef} className="action-dropdown">
+                      <button onClick={() => handleDelete(cliente.id)} className="dropdown-item delete">
+                        <Trash2 size={14} /> Excluir
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

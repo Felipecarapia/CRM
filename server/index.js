@@ -224,6 +224,19 @@ app.delete('/api/agendamentos/:id', async (req, res) => {
   }
 });
 
+app.delete('/api/clientes/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('clientes')
+      .delete()
+      .eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Background Worker ---
 
 setInterval(async () => {

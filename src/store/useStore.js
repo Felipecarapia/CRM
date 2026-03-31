@@ -118,6 +118,17 @@ const useStore = create((set, get) => ({
     }
   },
 
+  deleteCliente: async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/clientes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        set((state) => ({ clientes: state.clientes.filter(c => c.id !== id) }));
+      }
+    } catch (err) {
+      console.error('Error deleting client:', err);
+    }
+  },
+
   addAgendamento: async (novoAgendamento) => {
     try {
       // Find client ID by name or pass it directly (better for real DB)
