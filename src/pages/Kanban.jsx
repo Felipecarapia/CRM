@@ -30,19 +30,20 @@ const COLUMNS = [
 const getBadgeInfo = (edital) => {
   if (!edital || !edital.data) return null;
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-  const isExpired = edital.data < today || (edital.data === today && edital.horario && edital.horario < now.toTimeString().slice(0, 5));
-
-  if (edital.data === today) {
+  if (edital.data < today || (edital.data === today && edital.horario && edital.horario < currentTime)) {
+    return { text: `Vencido ${edital.data}`, variant: 'expired' };
+  } else if (edital.data === today) {
     return { text: `Hoje ${edital.horario || ''}`, variant: 'expired' };
   } else if (edital.data === tomorrowStr) {
     return { text: `Amanhã ${edital.horario || ''}`, variant: 'warning' };
   } else {
-    return { text: `${edital.data}${edital.horario ? ' às ' + edital.horario : ''}`, variant: 'normal' };
+    return { text: edital.data, variant: 'normal' };
   }
 };
 
