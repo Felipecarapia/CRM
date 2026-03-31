@@ -118,6 +118,86 @@
   overflow: hidden;
 }
 
+.edital-modal {
+  max-width: 560px;
+  width: 90%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.edital-body {
+  padding: 0 32px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edital-client-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.edital-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.edital-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.6;
+}
+
+.edital-textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.edital-textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.edital-datetime-row {
+  display: flex;
+  gap: 12px;
+}
+
+.edital-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border: var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.edital-input:focus {
+  border-color: var(--color-primary);
+}
+
+.edital-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
 .detail-avatar {
   width: 56px;
   height: 56px;

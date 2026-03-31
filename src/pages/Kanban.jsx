@@ -134,6 +134,8 @@ const Kanban = () => {
   const moveKanbanCard = useStore(state => state.moveKanbanCard);
   const [draggedOverColumn, setDraggedOverColumn] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [editalDescricao, setEditalDescricao] = useState('');
+  const [editalVencimento, setEditalVencimento] = useState('');
 
   const kanbanCards = useMemo(() => {
     const acc = Object.fromEntries(CATEGORIES.map(cat => [cat, []]));
@@ -165,7 +167,13 @@ const Kanban = () => {
 
   const handleCardClick = useCallback((cardId) => {
     const client = clientes.find(c => c.id === cardId);
-    if (client) setSelectedClient(client);
+    if (client) {
+      setSelectedClient(client);
+      const edictais = JSON.parse(localStorage.getItem('crm_edictais') || '{}');
+      const existing = edictais[cardId];
+      setEditalDescricao(existing?.descricao || '');
+      setEditalVencimento(existing?.vencimento || '');
+    }
   }, [clientes]);
 
   const clientAppointments = useMemo(() => {
@@ -246,76 +254,68 @@ const Kanban = () => {
 
       {selectedClient && (
         <div className="modal-overlay animate-fade-in" onClick={() => setSelectedClient(null)}>
-          <div className="modal-content glass-panel client-detail-modal" onClick={e => e.stopPropagation()}>
+          <div className="modal-content glass-panel edital-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div className="detail-avatar">
-                  {selectedClient.nome.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '1.25rem' }}>{selectedClient.nome}</h2>
-                  <span 
-                    className="status-badge"
-                    style={{ 
-                      backgroundColor: `${statusColors[selectedClient.status] || '#94a3b8'}22`,
-                      color: statusColors[selectedClient.status] || '#94a3b8',
-                      fontSize: '0.75rem',
-                      padding: '2px 8px',
-                      borderRadius: '4px',
-                      fontWeight: 600
-                    }}
-                  >
-                    {statusLabels[selectedClient.status] || selectedClient.status}
-                  </span>
-                </div>
-              </div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Edital</h2>
               <button className="btn-icon" onClick={() => setSelectedClient(null)}>
                 <X size={24} />
               </button>
             </div>
 
-            <div className="detail-body">
-              <div className="detail-info">
-                <div className="info-item">
-                  <Phone size={16} />
-                  <span>{selectedClient.telefone || 'N/A'}</span>
-                </div>
-                <div className="info-item">
-                  <Mail size={16} />
-                  <span>{selectedClient.email || 'N/A'}</span>
-                </div>
-                <div className="info-item">
-                  <Clock size={16} />
-                  <span>Criado em {new Date(selectedClient.criadoEm).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <div className="info-item">
-                  <DollarSign size={16} />
-                  <span>R$ {clientLtv.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <div className="edital-body">
+              <div className="edital-client-name">
+                {selectedClient.nome}
+              </div>
+
+              <div className="edital-field">
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', display: 'block' }}>
+                  Descrição
+                </label>
+                <textarea
+                  className="edital-textarea"
+                  placeholder="Digite a descrição do edital..."
+                  value={editalDescricao}
+                  onChange={(e) => setEditalDescricao(e.target.value)}
+                  rows={6}
+                />
+              </div>
+
+              <div className="edital-field">
+                <label style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '8px', display: 'block' }}>
+                  Vencimento
+                </label>
+                <div className="edital-datetime-row">
+                  <input
+                    type="date"
+                    className="edital-input"
+                    value={editalVencimento}
+                    onChange={(e) => setEditalVencimento(e.target.value)}
+                  />
+                  <input
+                    type="time"
+                    className="edital-input"
+                    value={editalVencimento}
+                    onChange={(e) => setEditalVencimento(e.target.value)}
+                  />
                 </div>
               </div>
 
-              {clientAppointments.length > 0 && (
-                <div className="detail-appointments">
-                  <h3 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '12px', color: '#fff' }}>
-                    <Tag size={14} style={{ marginRight: '6px' }} />
-                    Histórico de Agendamentos
-                  </h3>
-                  <div className="appointments-list">
-                    {clientAppointments.map(appt => (
-                      <div key={appt.id} className="appointment-item">
-                        <div className="appt-info">
-                          <span className="appt-servico">{appt.servico}</span>
-                          <span className="appt-date">{appt.data} às {appt.horario}</span>
-                        </div>
-                        <span className={`appt-status appt-${appt.status.toLowerCase().replace(/\s/g, '')}`}>
-                          {appt.status}
-                        </span>
-                        {appt.notas && <p className="appt-notas">{appt.notas}</p>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="edital-actions">
+                <button className="btn btn-outline" onClick={() => setSelectedClient(null)}>
+                  Cancelar
+                </button>
+                <button className="btn btn-primary" onClick={() => {
+                  const edictais = JSON.parse(localStorage.getItem('crm_edictais') || '{}');
+                  edictais[selectedClient.id] = {
+                    descricao: editalDescricao,
+                    vencimento: editalVencimento
+                  };
+                  localStorage.setItem('crm_edictais', JSON.stringify(edictais));
+                  setSelectedClient(null);
+                }}>
+                  Salvar
+                </button>
+              </div>
             </div>
           </div>
         </div>
