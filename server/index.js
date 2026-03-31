@@ -34,11 +34,6 @@ app.get('*', (req, res) => {
   }
 });
 
-// Inicia o servidor IMEDIATAMENTE (antes de carregar Supabase)
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`CRM Server running on port ${port}`);
-});
-
 // Carrega Supabase de forma assíncrona (não bloqueia)
 let supabase = null;
 
@@ -61,6 +56,20 @@ let supabase = null;
     console.log('Supabase init skipped:', err.message);
   }
 })();
+
+// Catch-all: serve React app for any non-API routes
+app.get('*', (req, res) => {
+  try {
+    res.sendFile(path.join(distPath, 'index.html'));
+  } catch (e) {
+    res.send('CRM Server is Running');
+  }
+});
+
+// Inicia o servidor DEPOIS de configurar tudo
+app.listen(port, '0.0.0.0', () => {
+  console.log(`CRM Server running on port ${port}`);
+});
 
 // --- Servicos ---
 
