@@ -1,7 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -20,7 +25,7 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-// Initialize tables
+// Initialize tables check
 async function initTables() {
   try {
     const { data, error } = await supabase.from('clientes').select('id').limit(1);
@@ -42,10 +47,7 @@ initTables();
 
 app.get('/api/servicos', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('servicos')
-      .select('*')
-      .order('nome', { ascending: true });
+    const { data, error } = await supabase.from('servicos').select('*').order('nome', { ascending: true });
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
@@ -57,11 +59,7 @@ app.post('/api/servicos', async (req, res) => {
   const { nome, preco } = req.body;
   if (!nome || !preco) return res.status(400).json({ error: 'Nome and Preço are required' });
   try {
-    const { data, error } = await supabase
-      .from('servicos')
-      .insert([{ nome, preco }])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('servicos').insert([{ nome, preco }]).select().single();
     if (error) throw error;
     res.status(201).json(data);
   } catch (err) {
@@ -71,10 +69,7 @@ app.post('/api/servicos', async (req, res) => {
 
 app.delete('/api/servicos/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('servicos')
-      .delete()
-      .eq('id', req.params.id);
+    const { error } = await supabase.from('servicos').delete().eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
   } catch (err) {
@@ -88,11 +83,7 @@ app.get('/api/agent/identify-client', async (req, res) => {
   const { phone } = req.query;
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
   try {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('*')
-      .eq('telefone', phone)
-      .single();
+    const { data, error } = await supabase.from('clientes').select('*').eq('telefone', phone).single();
     if (error && error.code !== 'PGRST116') throw error;
     res.json(data ? { found: true, client: data } : { found: false, message: 'Client not found' });
   } catch (err) {
@@ -105,11 +96,7 @@ app.post('/api/agent/create-client', async (req, res) => {
   console.log('[CREATE CLIENT] Request:', { nome, telefone, email });
   if (!nome || !telefone) return res.status(400).json({ error: 'Nome and Telefone are required' });
   try {
-    const { data, error } = await supabase
-      .from('clientes')
-      .insert([{ nome, telefone, email }])
-      .select()
-      .single();
+    const { data, error } = await supabase.from('clientes').insert([{ nome, telefone, email }]).select().single();
     if (error) {
       console.error('[CREATE CLIENT] Supabase error:', error);
       if (error.code === '23505' || error.message?.includes('unique')) {
@@ -131,11 +118,7 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields for scheduling' });
   }
   try {
-    const { data: result, error } = await supabase
-      .from('agendamentos')
-      .insert([{ clienteId: clientId, servico, data, horario, notas }])
-      .select()
-      .single();
+    const { data: result, error } = await supabase.from('agendamentos').insert([{ clienteId: clientId, servico, data, horario, notas }]).select().single();
     if (error) throw error;
     res.status(201).json(result);
   } catch (err) {
@@ -147,17 +130,9 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
 
 app.get('/api/dashboard/stats', async (req, res) => {
   try {
-    const { count: totalClients } = await supabase
-      .from('clientes')
-      .select('*', { count: 'exact', head: true });
-    const { count: totalAppointments } = await supabase
-      .from('agendamentos')
-      .select('*', { count: 'exact', head: true });
-    const { data: leads } = await supabase
-      .from('clientes')
-      .select('*')
-      .order('criadoEm', { ascending: false })
-      .limit(5);
+    const { count: totalClients } = await supabase.from('clientes').select('*', { count: 'exact', head: true });
+    const { count: totalAppointments } = await supabase.from('agendamentos').select('*', { count: 'exact', head: true });
+    const { data: leads } = await supabase.from('clientes').select('*').order('criadoEm', { ascending: false }).limit(5);
     res.json({
       totalClients: totalClients || 0,
       totalAppointments: totalAppointments || 0,
@@ -170,10 +145,7 @@ app.get('/api/dashboard/stats', async (req, res) => {
 
 app.get('/api/clientes', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('clientes')
-      .select('*')
-      .order('nome', { ascending: true });
+    const { data, error } = await supabase.from('clientes').select('*').order('nome', { ascending: true });
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
@@ -183,14 +155,7 @@ app.get('/api/clientes', async (req, res) => {
 
 app.get('/api/agendamentos', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('agendamentos')
-      .select(`
-        *,
-        clientes!inner(nome, telefone)
-      `)
-      .order('data', { ascending: false })
-      .order('horario', { ascending: false });
+    const { data, error } = await supabase.from('agendamentos').select(`*, clientes!inner(nome, telefone)`).order('data', { ascending: false }).order('horario', { ascending: false });
     if (error) throw error;
     const mapped = (data || []).map(a => ({
       ...a,
@@ -209,10 +174,7 @@ app.patch('/api/clientes/:id', async (req, res) => {
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
   try {
-    const { error } = await supabase
-      .from('clientes')
-      .update({ status })
-      .eq('id', id);
+    const { error } = await supabase.from('clientes').update({ status }).eq('id', id);
     if (error) throw error;
     res.json({ success: true, id, status });
   } catch (err) {
@@ -222,10 +184,7 @@ app.patch('/api/clientes/:id', async (req, res) => {
 
 app.delete('/api/agendamentos/:id', async (req, res) => {
   try {
-    const { error } = await supabase
-      .from('agendamentos')
-      .delete()
-      .eq('id', req.params.id);
+    const { error } = await supabase.from('agendamentos').delete().eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
   } catch (err) {
@@ -238,10 +197,7 @@ app.delete('/api/clientes/:id', async (req, res) => {
     // Remove agendamentos primeiro para evitar erro de chave estrangeira
     await supabase.from('agendamentos').delete().eq('clienteId', req.params.id);
     
-    const { error } = await supabase
-      .from('clientes')
-      .delete()
-      .eq('id', req.params.id);
+    const { error } = await supabase.from('clientes').delete().eq('id', req.params.id);
     if (error) throw error;
     res.json({ success: true });
   } catch (err) {
@@ -261,12 +217,7 @@ setInterval(async () => {
   const timeStr = `${hours}:${mins}`;
 
   try {
-    const { error } = await supabase
-      .from('agendamentos')
-      .update({ status: 'Aguardando Confirmação' })
-      .eq('data', dateStr)
-      .lte('horario', timeStr)
-      .eq('status', 'Agendado');
+    const { error } = await supabase.from('agendamentos').update({ status: 'Aguardando Confirmação' }).eq('data', dateStr).lte('horario', timeStr).eq('status', 'Agendado');
     if (error) console.error('Worker error:', error.message);
   } catch (err) {
     console.error('Worker error:', err.message);
