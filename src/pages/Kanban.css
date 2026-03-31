@@ -125,6 +125,21 @@
   overflow: hidden;
 }
 
+.edital-title-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  outline: none;
+  width: 100%;
+}
+
+.edital-title-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
 .edital-body {
   padding: 0 32px 32px;
   display: flex;

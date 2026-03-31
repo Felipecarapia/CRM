@@ -134,6 +134,7 @@ const Kanban = () => {
   const moveKanbanCard = useStore(state => state.moveKanbanCard);
   const [draggedOverColumn, setDraggedOverColumn] = useState(null);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [editalTitulo, setEditalTitulo] = useState('');
   const [editalDescricao, setEditalDescricao] = useState('');
   const [editalVencimento, setEditalVencimento] = useState('');
 
@@ -171,6 +172,7 @@ const Kanban = () => {
       setSelectedClient(client);
       const edictais = JSON.parse(localStorage.getItem('crm_edictais') || '{}');
       const existing = edictais[cardId];
+      setEditalTitulo(existing?.titulo || '');
       setEditalDescricao(existing?.descricao || '');
       setEditalVencimento(existing?.vencimento || '');
     }
@@ -256,7 +258,12 @@ const Kanban = () => {
         <div className="modal-overlay animate-fade-in" onClick={() => setSelectedClient(null)}>
           <div className="modal-content glass-panel edital-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 style={{ margin: 0, fontSize: '1.25rem' }}>Edital</h2>
+              <input
+                className="edital-title-input"
+                placeholder="Título do Edital"
+                value={editalTitulo}
+                onChange={(e) => setEditalTitulo(e.target.value)}
+              />
               <button className="btn-icon" onClick={() => setSelectedClient(null)}>
                 <X size={24} />
               </button>
@@ -307,6 +314,7 @@ const Kanban = () => {
                 <button className="btn btn-primary" onClick={() => {
                   const edictais = JSON.parse(localStorage.getItem('crm_edictais') || '{}');
                   edictais[selectedClient.id] = {
+                    titulo: editalTitulo,
                     descricao: editalDescricao,
                     vencimento: editalVencimento
                   };
