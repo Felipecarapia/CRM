@@ -11,8 +11,8 @@ COPY . .
 # Build the React app
 RUN npm run build
 
-# Railway dynamically assigns PORT - must use that port
-ENV PORT=8080
+# Railway will assign PORT dynamically - do not set it here
+# The server must listen on process.env.PORT
 EXPOSE 8080
 
 # Start the server

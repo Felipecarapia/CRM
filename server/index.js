@@ -9,11 +9,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Log startup info immediately
 console.log('[STARTUP] =========================================');
 console.log('[STARTUP] Starting CRM server...');
 console.log(`[STARTUP] PORT env: ${process.env.PORT || '(not set, using 8080)'}`);
 console.log(`[STARTUP] NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 console.log('[STARTUP] =========================================');
+
+// Global error handlers
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 
 // Middleware
 app.use(cors());
