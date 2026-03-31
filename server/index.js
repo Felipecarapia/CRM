@@ -277,8 +277,8 @@ setInterval(async () => {
   }
 }, 60000);
 
-// Catch-all: serve React app
-app.get('*', (req, res) => {
+// Catch-all: serve React app (Express 5 syntax)
+app.use((req, res) => {
   try {
     res.sendFile(path.join(distPath, 'index.html'));
   } catch (e) {
