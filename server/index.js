@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { createClient } = require('@libsql/client');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -10,196 +9,213 @@ app.use(express.json());
 
 app.get('/', (req, res) => res.send('CRM Server is Running'));
 
-// Use Railway persistent volume if available, otherwise local
-const dbDir = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
-const dbPath = path.resolve(dbDir, 'crm.db');
+// Turso client (SQLite on the cloud)
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL,
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
 
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database at:', dbPath);
-    createTables();
+async function initTables() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS clientes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        telefone TEXT UNIQUE NOT NULL,
+        email TEXT,
+        status TEXT DEFAULT 'novoLeads',
+        criadoEm DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS agendamentos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        clienteId INTEGER,
+        servico TEXT NOT NULL,
+        data TEXT NOT NULL,
+        horario TEXT NOT NULL,
+        status TEXT DEFAULT 'Agendado',
+        notas TEXT,
+        FOREIGN KEY (clienteId) REFERENCES clientes (id)
+      )
+    `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS servicos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        nome TEXT NOT NULL,
+        preco REAL NOT NULL
+      )
+    `);
+    console.log('Turso tables initialized.');
+  } catch (err) {
+    console.error('Error initializing tables:', err.message);
+  }
+}
+
+initTables();
+
+// --- Servicos ---
+
+app.get('/api/servicos', async (req, res) => {
+  try {
+    const result = await db.execute('SELECT * FROM servicos ORDER BY nome ASC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-function createTables() {
-  db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS clientes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nome TEXT NOT NULL,
-      telefone TEXT UNIQUE NOT NULL,
-      email TEXT,
-      status TEXT DEFAULT 'novoLeads',
-      criadoEm DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS agendamentos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      clienteId INTEGER,
-      servico TEXT NOT NULL,
-      data TEXT NOT NULL,
-      horario TEXT NOT NULL,
-      status TEXT DEFAULT 'Agendado',
-      notas TEXT,
-      FOREIGN KEY (clienteId) REFERENCES clientes (id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS servicos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nome TEXT NOT NULL,
-      preco REAL NOT NULL
-    )`);
-    console.log('Tables initialized.');
-  });
-}
-
-// --- Servicos Endpoints ---
-
-app.get('/api/servicos', (req, res) => {
-  db.all('SELECT * FROM servicos ORDER BY nome ASC', [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
-
-app.post('/api/servicos', (req, res) => {
+app.post('/api/servicos', async (req, res) => {
   const { nome, preco } = req.body;
   if (!nome || !preco) return res.status(400).json({ error: 'Nome and Preço are required' });
-  db.run('INSERT INTO servicos (nome, preco) VALUES (?, ?)', [nome, preco], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.status(201).json({ id: this.lastID, nome, preco });
-  });
+  try {
+    const result = await db.execute({ sql: 'INSERT INTO servicos (nome, preco) VALUES (?, ?)', args: [nome, preco] });
+    res.status(201).json({ id: result.lastInsertRowid, nome, preco });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.delete('/api/servicos/:id', (req, res) => {
-  const { id } = req.params;
-  db.run('DELETE FROM servicos WHERE id = ?', [id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/servicos/:id', async (req, res) => {
+  try {
+    await db.execute({ sql: 'DELETE FROM servicos WHERE id = ?', args: [req.params.id] });
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// --- Agent Tools Endpoints ---
+// --- Agent Tools ---
 
-app.get('/api/agent/identify-client', (req, res) => {
+app.get('/api/agent/identify-client', async (req, res) => {
   const { phone } = req.query;
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
-
-  db.get('SELECT * FROM clientes WHERE telefone = ?', [phone], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (row) {
-      res.json({ found: true, client: row });
-    } else {
-      res.json({ found: false, message: 'Client not found' });
-    }
-  });
+  try {
+    const result = await db.execute({ sql: 'SELECT * FROM clientes WHERE telefone = ?', args: [phone] });
+    const row = result.rows[0];
+    res.json(row ? { found: true, client: row } : { found: false, message: 'Client not found' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/agent/create-client', (req, res) => {
+app.post('/api/agent/create-client', async (req, res) => {
   const { nome, telefone, email } = req.body;
   if (!nome || !telefone) return res.status(400).json({ error: 'Nome and Telefone are required' });
-
-  const stmt = db.prepare('INSERT INTO clientes (nome, telefone, email) VALUES (?, ?, ?)');
-  stmt.run(nome, telefone, email, function(err) {
-    if (err) {
-      if (err.message.includes('UNIQUE')) {
-        return res.status(409).json({ error: 'Client with this phone already exists' });
-      }
-      return res.status(500).json({ error: err.message });
+  try {
+    const result = await db.execute({
+      sql: 'INSERT INTO clientes (nome, telefone, email) VALUES (?, ?, ?)',
+      args: [nome, telefone, email]
+    });
+    res.status(201).json({ id: result.lastInsertRowid, nome, telefone, email });
+  } catch (err) {
+    if (err.message.includes('UNIQUE') || err.message.includes('unique')) {
+      return res.status(409).json({ error: 'Client with this phone already exists' });
     }
-    res.status(201).json({ id: this.lastID, nome, telefone, email });
-  });
-  stmt.finalize();
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/agent/schedule-meeting', (req, res) => {
+app.post('/api/agent/schedule-meeting', async (req, res) => {
   const { clientId, servico, data, horario, notas } = req.body;
   if (!clientId || !servico || !data || !horario) {
     return res.status(400).json({ error: 'Missing required fields for scheduling' });
   }
-
-  const stmt = db.prepare('INSERT INTO agendamentos (clienteId, servico, data, horario, notas) VALUES (?, ?, ?, ?, ?)');
-  stmt.run(clientId, servico, data, horario, notas, function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.status(201).json({ id: this.lastID, clientId, servico, data, horario });
-  });
-  stmt.finalize();
-});
-
-app.get('/api/dashboard/stats', (req, res) => {
-  db.get('SELECT COUNT(*) as count FROM clientes', [], (err, clientCount) => {
-    db.get('SELECT COUNT(*) as count FROM agendamentos', [], (err, apptCount) => {
-      db.all('SELECT * FROM clientes ORDER BY criadoEm DESC LIMIT 5', [], (err, leads) => {
-        res.json({
-          totalClients: clientCount ? clientCount.count : 0,
-          totalAppointments: apptCount ? apptCount.count : 0,
-          latestLeads: leads || []
-        });
-      });
+  try {
+    const result = await db.execute({
+      sql: 'INSERT INTO agendamentos (clienteId, servico, data, horario, notas) VALUES (?, ?, ?, ?, ?)',
+      args: [clientId, servico, data, horario, notas]
     });
-  });
+    res.status(201).json({ id: result.lastInsertRowid, clientId, servico, data, horario });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/clientes', (req, res) => {
-  db.all('SELECT * FROM clientes ORDER BY nome ASC', [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+// --- Dashboard ---
+
+app.get('/api/dashboard/stats', async (req, res) => {
+  try {
+    const clientCount = await db.execute('SELECT COUNT(*) as count FROM clientes');
+    const apptCount = await db.execute('SELECT COUNT(*) as count FROM agendamentos');
+    const leads = await db.execute('SELECT * FROM clientes ORDER BY criadoEm DESC LIMIT 5');
+    res.json({
+      totalClients: Number(clientCount.rows[0]?.count || 0),
+      totalAppointments: Number(apptCount.rows[0]?.count || 0),
+      latestLeads: leads.rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/agendamentos', (req, res) => {
-  const sql = `
-    SELECT a.*, c.nome as clienteNome, c.telefone as clienteTelefone 
-    FROM agendamentos a 
-    JOIN clientes c ON a.clienteId = c.id 
-    ORDER BY a.data DESC, a.horario DESC
-  `;
-  db.all(sql, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+app.get('/api/clientes', async (req, res) => {
+  try {
+    const result = await db.execute('SELECT * FROM clientes ORDER BY nome ASC');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.patch('/api/clientes/:id', (req, res) => {
+app.get('/api/agendamentos', async (req, res) => {
+  try {
+    const result = await db.execute(`
+      SELECT a.*, c.nome as clienteNome, c.telefone as clienteTelefone 
+      FROM agendamentos a 
+      JOIN clientes c ON a.clienteId = c.id 
+      ORDER BY a.data DESC, a.horario DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/clientes/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   if (!status) return res.status(400).json({ error: 'Status is required' });
-
-  db.run('UPDATE clientes SET status = ? WHERE id = ?', [status, id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    if (this.changes === 0) return res.status(404).json({ error: 'Client not found' });
+  try {
+    const result = await db.execute({ sql: 'UPDATE clientes SET status = ? WHERE id = ?', args: [status, id] });
+    if (result.rowsAffected === 0) return res.status(404).json({ error: 'Client not found' });
     res.json({ success: true, id, status });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.delete('/api/agendamentos/:id', (req, res) => {
-  const { id } = req.params;
-  db.run('DELETE FROM agendamentos WHERE id = ?', [id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/agendamentos/:id', async (req, res) => {
+  try {
+    await db.execute({ sql: 'DELETE FROM agendamentos WHERE id = ?', args: [req.params.id] });
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
+// --- Background Worker ---
+
+setInterval(async () => {
+  const now = new Date();
+  const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  const dateStr = twoHoursLater.toISOString().split('T')[0];
+  const hours = String(twoHoursLater.getHours()).padStart(2, '0');
+  const mins = String(twoHoursLater.getMinutes()).padStart(2, '0');
+  const timeStr = `${hours}:${mins}`;
+
+  try {
+    const result = await db.execute({
+      sql: "UPDATE agendamentos SET status = 'Aguardando Confirmação' WHERE data = ? AND horario <= ? AND status = 'Agendado'",
+      args: [dateStr, timeStr]
+    });
+    if (result.rowsAffected > 0) console.log(`[Worker] ${result.rowsAffected} appointments flagged.`);
+  } catch (err) {
+    console.error('Worker error:', err.message);
+  }
+}, 60000);
 
 app.listen(port, () => {
   console.log(`CRM Agent API running at http://localhost:${port}`);
-  console.log(`Database path: ${dbPath}`);
-
-  setInterval(() => {
-    const now = new Date();
-    const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-    const dateStr = twoHoursLater.toISOString().split('T')[0];
-    const hours = String(twoHoursLater.getHours()).padStart(2, '0');
-    const mins = String(twoHoursLater.getMinutes()).padStart(2, '0');
-    const timeStr = `${hours}:${mins}`;
-
-    db.run(
-      "UPDATE agendamentos SET status = 'Aguardando Confirmação' WHERE data = ? AND horario <= ? AND status = 'Agendado'",
-      [dateStr, timeStr],
-      function(err) {
-        if (err) console.error('Worker error:', err.message);
-        if (this.changes > 0) console.log(`[Worker] ${this.changes} appointments flagged for confirmation.`);
-      }
-    );
-  }, 60000);
+  console.log('Database: Turso (SQLite on the cloud)');
 });
