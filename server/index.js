@@ -9,10 +9,11 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 8080;
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Health check - responde sempre
+// Health check - always responds immediately
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.get('/', (req, res) => res.json({ status: 'CRM Server Running' }));
 
@@ -24,17 +25,7 @@ try {
   // Static files may not exist during build
 }
 
-// Catch-all para React Router
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(503).json({ error: 'Database not ready' });
-  try {
-    res.sendFile(path.join(distPath, 'index.html'));
-  } catch (e) {
-    res.send('CRM Server Running');
-  }
-});
-
-// Carrega Supabase de forma assíncrona (não bloqueia)
+// Initialize Supabase asynchronously (non-blocking)
 let supabase = null;
 
 (async () => {
@@ -57,22 +48,8 @@ let supabase = null;
   }
 })();
 
-// Catch-all: serve React app for any non-API routes
-app.get('*', (req, res) => {
-  try {
-    res.sendFile(path.join(distPath, 'index.html'));
-  } catch (e) {
-    res.send('CRM Server is Running');
-  }
-});
-
-// Inicia o servidor DEPOIS de configurar tudo
-app.listen(port, '0.0.0.0', () => {
-  console.log(`CRM Server running on port ${port}`);
-});
-
-// --- Servicos ---
-
+// API Routes - MUST be defined before catch-all
+// --- Services ---
 app.get('/api/servicos', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
@@ -109,7 +86,6 @@ app.delete('/api/servicos/:id', async (req, res) => {
 });
 
 // --- Agent Tools ---
-
 app.get('/api/agent/identify-client', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   const { phone } = req.query;
@@ -161,7 +137,6 @@ app.post('/api/agent/schedule-meeting', async (req, res) => {
 });
 
 // --- Dashboard ---
-
 app.get('/api/dashboard/stats', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
@@ -245,7 +220,6 @@ app.delete('/api/clientes/:id', async (req, res) => {
 });
 
 // --- Background Worker ---
-
 setInterval(async () => {
   if (!supabase) return;
   const now = new Date();
@@ -263,12 +237,13 @@ setInterval(async () => {
   }
 }, 60000);
 
+// Start server AFTER configuring everything
 app.listen(port, '0.0.0.0', () => {
   console.log(`CRM Agent API running at http://0.0.0.0:${port}`);
   console.log('Database: Supabase');
 });
 
-// Catch-all: serve React app for any non-API routes
+// Catch-all: serve React app for any non-API routes (MUST be last)
 app.get('*', (req, res) => {
   try {
     res.sendFile(path.join(distPath, 'index.html'));
