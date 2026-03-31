@@ -134,7 +134,7 @@ const useStore = create((set, get) => ({
   deleteCliente: async (id) => {
     try {
       console.log('Deleting client:', id);
-      const res = await fetch(`${API_URL}/clientes/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API_URL}/clientes/delete/${id}`, { method: 'POST' });
       console.log('Delete response:', res.status);
       if (!res.ok) {
         const contentType = res.headers.get('content-type');

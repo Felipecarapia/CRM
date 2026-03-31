@@ -226,6 +226,19 @@ app.delete('/api/agendamentos/:id', async (req, res) => {
   }
 });
 
+app.post('/api/clientes/delete/:id', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Database not configured' });
+  try {
+    await supabase.from('agendamentos').delete().eq('clienteId', req.params.id);
+    const { error } = await supabase.from('clientes').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao excluir cliente:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/clientes/:id', async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Database not configured' });
   try {
